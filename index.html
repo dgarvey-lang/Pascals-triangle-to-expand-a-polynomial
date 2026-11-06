@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pascal's Triangle Expander</title>
+<style>
+  :root {
+    --bg: #f7f7f4; --card: #ffffff; --ink: #1d1d1b; --muted: #66665f;
+    --line: #dcdcd4; --accent: #2f5fd0; --accent-soft: #e3eafb; --bad: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615; --card: #20201e; --ink: #ececea; --muted: #a3a39c;
+      --line: #3a3a36; --accent: #8aa8f0; --accent-soft: #263150; --bad: #f2b8b5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.7rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 0 0 12px; }
+  p.lead { color: var(--muted); margin: 0 0 24px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px; margin-bottom: 20px;
+  }
+  form { display: flex; gap: 8px; flex-wrap: wrap; }
+  input {
+    flex: 1 1 220px; font: inherit; font-size: 1.15rem; padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink);
+  }
+  button {
+    font: inherit; padding: 10px 18px; border-radius: 8px; border: 0;
+    background: var(--accent); color: var(--card); cursor: pointer; font-weight: 600;
+  }
+  .examples { margin-top: 10px; font-size: .9rem; color: var(--muted); }
+  .examples a { color: var(--accent); cursor: pointer; margin-right: 10px; }
+  .error { color: var(--bad); margin-top: 10px; min-height: 1.5em; }
+  .answer { font-size: 1.4rem; overflow-x: auto; padding: 4px 0; }
+  .triangle { overflow-x: auto; text-align: center; font-variant-numeric: tabular-nums; }
+  .trow { white-space: nowrap; padding: 2px 0; }
+  .trow span { display: inline-block; min-width: 2.4em; padding: 2px 4px; }
+  .trow.hl span { background: var(--accent-soft); color: var(--accent); font-weight: 700; border-radius: 6px; }
+  .trow .rn { color: var(--muted); font-size: .8rem; min-width: 4em; text-align: right; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .tablewrap { overflow-x: auto; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: .85rem; }
+  .note { color: var(--muted); font-size: .9rem; margin-top: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Pascal's Triangle Expander</h1>
+  <p class="lead">Type a binomial raised to a power. Row <i>n</i> of Pascal's triangle gives the coefficients of (a + b)<sup><i>n</i></sup>.</p>
+
+  <div class="card">
+    <form id="f">
+      <input id="q" value="(2x - 3)^4" aria-label="Binomial" autocomplete="off" spellcheck="false">
+      <button>Expand</button>
+    </form>
+    <div class="examples">Try:
+      <a>(x + 1)^5</a><a>(a + b)^6</a><a>(2x - 3y)^3</a><a>(x^2 - 1)^4</a><a>(3 - x)^5</a>
+    </div>
+    <div class="error" id="err"></div>
+  </div>
+
+  <div id="out" hidden>
+    <div class="card">
+      <h2>Answer</h2>
+      <div class="answer" id="answer"></div>
+    </div>
+    <div class="card">
+      <h2 id="s1"></h2>
+      <div class="triangle" id="tri"></div>
+    </div>
+    <div class="card">
+      <h2 id="s2"></h2>
+      <div class="tablewrap"><table id="tbl"></table></div>
+      <p class="note">The power of the first term counts <b>down</b> from <i>n</i> to 0 while the power of the second term counts <b>up</b> from 0 to <i>n</i>. In every row the two powers add to <i>n</i>.</p>
+    </div>
+  </div>
+</main>
+
+<script>
+const MAX_N = 30;
+
+function pascalRow(n) {
+  let row = [1n];
+  for (let i = 0; i < n; i++) {
+    const next = [1n];
+    for (let j = 0; j < row.length - 1; j++) next.push(row[j] + row[j + 1]);
+    next.push(1n);
+    row = next;
+  }
+  return row;
+}
+
+const TERM = String.raw`([+-]?)\s*(\d*)\s*([a-zA-Z]?)(?:\s*\^\s*(\d+))?`;
+const BINOMIAL = new RegExp(
+  String.raw`^\(?\s*` + TERM + String.raw`\s*([+-])\s*(\d*)\s*([a-zA-Z]?)(?:\s*\^\s*(\d+))?\s*\)?\s*\^\s*(\d+)\s*$`
+);
+
+function makeTerm(sign, digits, v, p) {
+  if (!digits && !v) throw new Error("Each term needs a number or a variable.");
+  if (p && !v) throw new Error("An exponent inside a term needs a variable, e.g. x^2.");
+  let coef = digits ? BigInt(digits) : 1n;
+  if (sign === "-") coef = -coef;
+  return { coef, v, p: p ? Number(p) : 1 };
+}
+
+function parse(text) {
+  const m = text.trim().replace(/\*\*/g, "^").replace(/[−–]/g, "-").match(BINOMIAL);
+  if (!m) throw new Error("Couldn't read that. Use a form like (2x - 3)^4 or (a + b)^5.");
+  const n = Number(m[9]);
+  if (n > MAX_N) throw new Error(`Please keep the power at ${MAX_N} or less.`);
+  return [makeTerm(m[1], m[2], m[3], m[4]), makeTerm(m[5], m[6], m[7], m[8]), n];
+}
+
+
+// powers: {var: exponent}
+function monomial(coef, powers, first) {
+  const neg = coef < 0n, mag = neg ? -coef : coef;
+  const vars = Object.keys(powers).sort().filter(v => powers[v] !== 0)
+    .map(v => `<i>${v}</i>` + (powers[v] !== 1 ? `<sup>${powers[v]}</sup>` : "")).join("");
+  const body = (mag === 1n && vars) ? vars : mag + vars;
+  if (first) return (neg ? "−" : "") + body;
+  return (neg ? " − " : " + ") + body;
+}
+
+function poly(terms) {
+  if (!terms.length) return "0";
+  return terms.map(([c, p], i) => monomial(c, p, i === 0)).join("");
+}
+
+const termPowers = t => (t.v && t.p ? { [t.v]: t.p } : {});
+const showTerm = t => poly([[t.coef, termPowers(t)]]);
+const raise = (t, k) => ({ coef: t.coef ** BigInt(k), v: t.v, p: t.p * k });
+
+function addPowers(...ts) {
+  const out = {};
+  for (const t of ts) if (t.v && t.p) out[t.v] = (out[t.v] || 0) + t.p;
+  return out;
+}
+
+function render(text) {
+  const err = document.getElementById("err");
+  let a, b, n;
+  try { [a, b, n] = parse(text); }
+  catch (e) { err.textContent = e.message; document.getElementById("out").hidden = true; return; }
+  err.textContent = "";
+
+  const row = pascalRow(n);
+  const fa = showTerm(a), fb = showTerm(b);
+
+  // Pascal's triangle, highlighting row n
+  const tri = [];
+  for (let r = 0; r <= n; r++) {
+    tri.push(`<div class="trow${r === n ? " hl" : ""}">` +
+      pascalRow(r).map(v => `<span>${v}</span>`).join("") + `</div>`);
+  }
+  document.getElementById("tri").innerHTML = tri.join("");
+  document.getElementById("s1").innerHTML =
+    `Step 1 · Row ${n} of Pascal's triangle: ${row.join(", ")}`;
+
+  // Term-by-term table
+  document.getElementById("s2").innerHTML =
+    `Step 2 · Multiply: coefficient × (${fa})<sup>${n}−k</sup> × (${fb})<sup>k</sup>`;
+  const rows = [`<tr><th>k</th><th>Coefficient</th><th>(${fa})<sup>${n}−k</sup></th><th>(${fb})<sup>k</sup></th><th>Term</th></tr>`];
+  const combined = new Map();
+  row.forEach((c, k) => {
+    const ak = raise(a, n - k), bk = raise(b, k);
+    const coef = c * ak.coef * bk.coef;
+    const powers = addPowers(ak, bk);
+    rows.push(`<tr><td>${k}</td><td>${c}</td><td>(${fa})<sup>${n - k}</sup> = ${showTerm(ak)}</td>` +
+      `<td>(${fb})<sup>${k}</sup> = ${showTerm(bk)}</td><td><b>${poly([[coef, powers]])}</b></td></tr>`);
+    const key = JSON.stringify(Object.entries(powers).sort());
+    const prev = combined.get(key);
+    combined.set(key, [(prev ? prev[0] : 0n) + coef, powers]);
+  });
+  document.getElementById("tbl").innerHTML = rows.join("");
+
+  // Final answer (like terms combined)
+  const terms = [...combined.values()].filter(([c]) => c !== 0n);
+  const lhs = `(${fa} + ${fb})`.replace("+ −", "− ") + `<sup>${n}</sup>`;
+  document.getElementById("answer").innerHTML = `${lhs} = ${poly(terms)}`;
+  document.getElementById("out").hidden = false;
+}
+
+const q = document.getElementById("q");
+document.getElementById("f").addEventListener("submit", e => { e.preventDefault(); render(q.value); });
+document.querySelectorAll(".examples a").forEach(a =>
+  a.addEventListener("click", () => { q.value = a.textContent; render(q.value); }));
+render(q.value);
+</script>
+</body>
+</html>
