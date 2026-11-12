@@ -1,0 +1,433 @@
+<title>Pick the Method</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,500;1,500&display=swap">
+<style>
+/* Layout: projector-first stage. Teacher sees a control bar + big stage; students see one question with three big buttons. */
+:root {
+  --bg: #f5f7fb;
+  --paper: #ffffff;
+  --grid: #e3e8f2;
+  --ink: #18223a;
+  --muted: #5b6680;
+  --line: #d3dae8;
+  --factor: #0f8a7e;
+  --root: #c77700;
+  --formula: #6a4bd8;
+  --good: #1d8a46;
+  --bad: #c8373b;
+  --accent: #2547b8;
+  --font-display: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-math: "STIX Two Text", "Cambria Math", "Times New Roman", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1424; --paper: #171e33; --grid: #1e2740; --ink: #e8ecf7; --muted: #9aa5c2; --line: #2c3654;
+    --factor: #2fc2b2; --root: #f0a53a; --formula: #9d86ff; --good: #3ccf74; --bad: #ff6b6e; --accent: #7d9bff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1424; --paper: #171e33; --grid: #1e2740; --ink: #e8ecf7; --muted: #9aa5c2; --line: #2c3654;
+  --factor: #2fc2b2; --root: #f0a53a; --formula: #9d86ff; --good: #3ccf74; --bad: #ff6b6e; --accent: #7d9bff;
+  color-scheme: dark;
+}
+html, body { min-height: 100%; }
+body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 28px 28px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+.eyebrow { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 600; }
+.math { font-family: var(--font-math); font-style: normal; white-space: nowrap; }
+.math i { font-style: italic; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* top bar */
+.bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px;
+}
+.bar .brand { font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; margin-right: auto; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 0.85rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.chip.live .dot { background: var(--good); }
+.btn { border: 1px solid var(--line); background: var(--paper); color: var(--ink); border-radius: 8px; padding: 7px 14px; font-weight: 600; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.danger-confirm { border-color: var(--bad); color: var(--bad); }
+
+/* stage */
+.stage {
+  background: var(--paper); border: 1px solid var(--line); border-radius: 16px;
+  padding: clamp(20px, 4vw, 48px);
+  display: flex; flex-direction: column; gap: clamp(18px, 3vw, 32px);
+  min-height: 60vh;
+}
+.qhead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.equation { font-family: var(--font-math); font-size: clamp(2.4rem, 7vw, 5.2rem); text-align: center; line-height: 1.15; padding-block: 8px; }
+.equation i { font-style: italic; }
+.prompt { text-align: center; color: var(--muted); font-size: clamp(1rem, 2vw, 1.35rem); margin-top: -10px; }
+
+.options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 640px) { .options { grid-template-columns: 1fr; } }
+.opt {
+  --c: var(--accent);
+  border: 2px solid var(--line); border-radius: 14px; background: var(--paper); color: var(--ink);
+  padding: 18px; text-align: left; display: flex; flex-direction: column; gap: 6px; min-width: 0;
+}
+.opt[data-m="factor"] { --c: var(--factor); }
+.opt[data-m="root"] { --c: var(--root); }
+.opt[data-m="formula"] { --c: var(--formula); }
+.opt .letter { font-family: var(--font-display); font-weight: 800; color: var(--c); font-size: 1.1rem; }
+.opt .name { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.25rem, 2.6vw, 1.8rem); }
+.opt .hint { color: var(--muted); font-size: 0.92rem; }
+button.opt:hover { border-color: var(--c); }
+.opt.picked { border-color: var(--c); box-shadow: inset 0 0 0 2px var(--c); background: color-mix(in srgb, var(--c) 9%, var(--paper)); }
+.opt.locked { cursor: default; }
+
+/* results */
+.split { display: flex; flex-direction: column; gap: 10px; }
+.split-bar { display: flex; height: clamp(54px, 8vw, 84px); border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: var(--grid); }
+.split-bar > div { display: flex; align-items: center; padding: 0 16px; color: #fff; font-family: var(--font-display); font-weight: 800; font-size: clamp(1.2rem, 3vw, 2rem); white-space: nowrap; overflow: hidden; transition: flex-basis .6s ease; font-variant-numeric: tabular-nums; }
+.split-bar .ok { background: var(--good); }
+.split-bar .no { background: var(--bad); justify-content: flex-end; }
+.split-legend { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-weight: 600; }
+.split-legend .ok { color: var(--good); }
+.split-legend .no { color: var(--bad); }
+.bigstats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.stat { border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+.stat .v { font-family: var(--font-display); font-weight: 800; font-size: clamp(2.4rem, 7vw, 4.4rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.stat.ok .v { color: var(--good); }
+.stat.no .v { color: var(--bad); }
+.stat .l { color: var(--muted); font-weight: 600; margin-top: 4px; }
+
+.rows { display: flex; flex-direction: column; gap: 10px; }
+.row { display: grid; grid-template-columns: minmax(0, 13rem) minmax(0, 1fr) 6.5rem; gap: 12px; align-items: center; }
+@media (max-width: 640px) { .row { grid-template-columns: minmax(0, 1fr) 5.5rem; } .row .track { grid-column: 1 / -1; grid-row: 2; } }
+.row .lab { font-weight: 600; display: flex; gap: 8px; align-items: center; min-width: 0; }
+.row .lab .tag { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--good); border: 1px solid var(--good); border-radius: 999px; padding: 1px 8px; }
+.track { height: 26px; background: var(--grid); border-radius: 6px; overflow: hidden; }
+.fill { height: 100%; border-radius: 6px; transition: width .6s ease; }
+.row .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.row .num small { color: var(--muted); font-weight: 500; }
+
+.why { border-left: 4px solid var(--good); padding: 10px 16px; background: color-mix(in srgb, var(--good) 7%, var(--paper)); border-radius: 0 10px 10px 0; font-size: clamp(1rem, 1.8vw, 1.2rem); }
+.why b { color: var(--good); }
+
+.center { text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center; justify-content: center; flex: 1; }
+.center h1 { font-size: clamp(2rem, 5vw, 3.6rem); }
+.center p { max-width: 60ch; color: var(--muted); margin: 0; font-size: 1.1rem; }
+.waiting { font-size: clamp(1.1rem, 2.4vw, 1.5rem); color: var(--muted); font-variant-numeric: tabular-nums; }
+.waiting b { color: var(--ink); font-family: var(--font-display); font-size: 1.4em; }
+
+.note { border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; color: var(--muted); font-size: 0.95rem; }
+.feedback { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.5rem, 4vw, 2.4rem); text-align: center; }
+.feedback.ok { color: var(--good); }
+.feedback.no { color: var(--bad); }
+
+table.sum { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.sum th, .sum td { padding: 10px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+.sum th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.sum td.eq { font-family: var(--font-math); font-size: 1.2rem; white-space: nowrap; }
+.sum .mini { width: 100%; min-width: 120px; height: 14px; background: var(--bad); border-radius: 4px; overflow: hidden; }
+.sum .mini > div { height: 100%; background: var(--good); }
+.scroll { overflow-x: auto; }
+.hide-sm { }
+@media (max-width: 640px) { .hide-sm { display: none; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap" id="app">
+  <div class="stage"><div class="center"><h1>Pick the Method</h1><p>Connecting to the class session…</p></div></div>
+</div>
+
+<script>
+const METHODS = {
+  factor:  { letter: "A", name: "Factoring",         hint: "Rewrite as a product and use the zero-product property" },
+  root:    { letter: "B", name: "Square Roots",      hint: "Isolate the squared part, then take ± the square root" },
+  formula: { letter: "C", name: "Quadratic Formula", hint: "x = (−b ± √(b² − 4ac)) / 2a" },
+};
+const ORDER = ["factor", "root", "formula"];
+const x = "<i>x</i>", sq = "<sup>2</sup>";
+const QUESTIONS = [
+  { eq: `${x}${sq} = 49`, best: "root", why: "There is no <i>x</i>-term and <i>x</i>² is already alone. Take ± the square root: <i>x</i> = ±7." },
+  { eq: `${x}${sq} + 7${x} + 12 = 0`, best: "factor", why: "3 · 4 = 12 and 3 + 4 = 7, so it factors as (<i>x</i> + 3)(<i>x</i> + 4) = 0. <i>x</i> = −3 or −4." },
+  { eq: `3${x}${sq} + 5${x} − 1 = 0`, best: "formula", why: "No integer pair multiplies to −3 and adds to 5, so it won't factor. The formula gives <i>x</i> = (−5 ± √37) / 6." },
+  { eq: `(${x} − 4)${sq} = 25`, best: "root", why: "The left side is already a perfect square. Square-root both sides: <i>x</i> − 4 = ±5, so <i>x</i> = 9 or −1." },
+  { eq: `${x}${sq} − 9${x} + 20 = 0`, best: "factor", why: "−4 · −5 = 20 and −4 + −5 = −9, so (<i>x</i> − 4)(<i>x</i> − 5) = 0. <i>x</i> = 4 or 5." },
+  { eq: `2${x}${sq} − 4${x} − 7 = 0`, best: "formula", why: "The discriminant is 16 + 56 = 72, which is not a perfect square, so it won't factor nicely. Use the formula: <i>x</i> = 1 ± 3√2 / 2." },
+  { eq: `5${x}${sq} − 80 = 0`, best: "root", why: "No <i>x</i>-term. Add 80 and divide by 5: <i>x</i>² = 16, so <i>x</i> = ±4." },
+  { eq: `${x}${sq} + 3${x} + 1 = 0`, best: "formula", why: "The only factor pair of 1 is 1 · 1, which adds to 2, not 3. The discriminant is 5, so <i>x</i> = (−3 ± √5) / 2." },
+  { eq: `${x}${sq} − 2${x} − 15 = 0`, best: "factor", why: "−5 · 3 = −15 and −5 + 3 = −2, so (<i>x</i> − 5)(<i>x</i> + 3) = 0. <i>x</i> = 5 or −3." },
+  { eq: `4${x}${sq} + 12${x} = 0`, best: "factor", why: "There is no constant term, so pull out the GCF: 4<i>x</i>(<i>x</i> + 3) = 0. <i>x</i> = 0 or −3." },
+];
+
+const app = document.getElementById("app");
+const S = {
+  db: null, uid: null, isTeacher: false, studentPreview: false,
+  session: null, sessionLoaded: false, votes: [], myVote: null,
+  writeBlocked: false, confirmReset: false, stale: false, noDb: false,
+};
+
+function pct(n, d) { return d ? Math.round((n / d) * 100) : 0; }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+// ---------- tallies ----------
+function liveTally(qi) {
+  const run = S.session?.run; const key = "q" + qi;
+  const counts = { factor: 0, root: 0, formula: 0 };
+  for (const v of S.votes) {
+    if (v.id === S.uid && S.isTeacher) continue;   // never count the teacher's own preview votes
+    const d = v.data; if (!d || d.run !== run) continue;
+    const a = d.answers?.[key]; if (counts[a] !== undefined) counts[a]++;
+  }
+  return counts;
+}
+function tallyFor(qi) {
+  // Frozen tally saved at reveal time, else live.
+  return S.session?.tallies?.["q" + qi] || liveTally(qi);
+}
+function totalOf(c) { return ORDER.reduce((s, k) => s + (c[k] || 0), 0); }
+
+// ---------- writes ----------
+let writing = Promise.resolve();
+function setSession(patch) {
+  const next = Object.assign({ run: S.session?.run || newRun(), q: 0, phase: "lobby", tallies: {} }, S.session || {}, patch);
+  S.session = next; render();
+  writing = writing.then(() => S.db.doc("session/current").set(next)).catch(e => console.error("session write", e));
+}
+function newRun() { return "r" + Date.now().toString(36); }
+
+let voteWriting = Promise.resolve();
+function castVote(method) {
+  if (!S.db || !S.uid || S.writeBlocked) return;
+  const run = S.session.run; const key = "q" + S.session.q;
+  const prev = (S.myVote && S.myVote.run === run) ? S.myVote.answers || {} : {};
+  const body = { run, answers: Object.assign({}, prev, { [key]: method }), at: Date.now() };
+  S.myVote = body; render();
+  voteWriting = voteWriting.then(() => S.db.doc("votes/" + S.uid).set(body)).catch(e => {
+    if (e && e.code === "invalid_argument") { S.writeBlocked = true; render(); }
+    console.error("vote write", e);
+  });
+}
+
+// ---------- rendering ----------
+function eqBlock(q) { return `<div class="equation">${q.eq}</div>`; }
+function optionsBlock(qi, opts) {
+  const { pickable, picked, showBest } = opts;
+  return `<div class="options">` + ORDER.map(k => {
+    const m = METHODS[k];
+    const cls = ["opt", picked === k ? "picked" : "", pickable ? "" : "locked"].join(" ");
+    const tag = pickable ? "button" : "div";
+    return `<${tag} class="${cls}" data-m="${k}" ${pickable ? `data-vote="${k}" type="button" aria-pressed="${picked === k}"` : ""}>
+      <span class="letter">${m.letter}</span>
+      <span class="name">${m.name}</span>
+      <span class="hint">${m.hint}</span>
+    </${tag}>`;
+  }).join("") + `</div>`;
+}
+function resultsBlock(qi) {
+  const q = QUESTIONS[qi]; const c = tallyFor(qi); const total = totalOf(c);
+  const right = c[q.best] || 0; const wrong = total - right;
+  const pr = pct(right, total), pw = total ? 100 - pr : 0;
+  const rows = ORDER.map(k => {
+    const n = c[k] || 0; const p = pct(n, total); const color = `var(--${k})`;
+    return `<div class="row">
+      <div class="lab"><span>${METHODS[k].letter}. ${METHODS[k].name}</span>${k === q.best ? `<span class="tag">Best</span>` : ""}</div>
+      <div class="track"><div class="fill" style="width:${p}%;background:${color}"></div></div>
+      <div class="num">${p}% <small>(${n})</small></div>
+    </div>`;
+  }).join("");
+  return `
+    <div class="bigstats">
+      <div class="stat ok"><div class="v">${pr}%</div><div class="l">got it correct · ${right} student${right === 1 ? "" : "s"}</div></div>
+      <div class="stat no"><div class="v">${pw}%</div><div class="l">got it wrong · ${wrong} student${wrong === 1 ? "" : "s"}</div></div>
+    </div>
+    <div class="split">
+      <div class="split-bar" role="img" aria-label="${pr}% correct, ${pw}% incorrect">
+        ${total ? `<div class="ok" style="flex-basis:${pr}%">${pr >= 12 ? pr + "%" : ""}</div><div class="no" style="flex-basis:${pw}%">${pw >= 12 ? pw + "%" : ""}</div>` : ""}
+      </div>
+      <div class="split-legend"><span class="ok">■ Correct</span><span class="muted">${total} response${total === 1 ? "" : "s"}</span><span class="no">Incorrect ■</span></div>
+    </div>
+    <div class="rows">${rows}</div>
+    <div class="why"><b>Best method: ${METHODS[q.best].name}.</b> ${q.why}</div>`;
+}
+function summaryBlock() {
+  const rows = QUESTIONS.map((q, i) => {
+    const c = S.session?.tallies?.["q" + i]; if (!c) return `<tr><td>${i + 1}</td><td class="eq">${q.eq}</td><td class="hide-sm">${METHODS[q.best].name}</td><td colspan="2" style="color:var(--muted)">Not revealed</td></tr>`;
+    const t = totalOf(c); const p = pct(c[q.best] || 0, t);
+    return `<tr><td>${i + 1}</td><td class="eq">${q.eq}</td><td class="hide-sm">${METHODS[q.best].name}</td>
+      <td style="width:40%"><div class="mini" ${t ? "" : 'style="background:var(--grid)"'}><div style="width:${t ? p : 0}%"></div></div></td>
+      <td><b>${p}%</b> <span style="color:var(--muted)">of ${t}</span></td></tr>`;
+  }).join("");
+  const done = QUESTIONS.map((q, i) => S.session?.tallies?.["q" + i]).filter(Boolean);
+  let num = 0, den = 0;
+  QUESTIONS.forEach((q, i) => { const c = S.session?.tallies?.["q" + i]; if (c) { num += c[q.best] || 0; den += totalOf(c); } });
+  return `<div class="qhead"><h2 style="font-size:clamp(1.6rem,4vw,2.6rem)">Class summary</h2><span class="chip">${done.length} of ${QUESTIONS.length} revealed · ${pct(num, den)}% correct overall</span></div>
+    <div class="scroll"><table class="sum"><thead><tr><th>#</th><th>Equation</th><th class="hide-sm">Best method</th><th>Correct (green) vs wrong (red)</th><th>Correct</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function teacherView() {
+  const s = S.session; const phase = s?.phase || "lobby"; const qi = s?.q ?? 0; const q = QUESTIONS[qi];
+  const live = liveTally(qi); const n = totalOf(live);
+  let primary = "";
+  if (phase === "lobby") primary = `<button class="btn primary" data-act="start">Start question 1</button>`;
+  else if (phase === "voting") primary = `<button class="btn primary" data-act="reveal">Close voting &amp; show results</button>`;
+  else if (phase === "results") primary = qi < QUESTIONS.length - 1
+    ? `<button class="btn primary" data-act="next">Next question →</button>`
+    : `<button class="btn primary" data-act="summary">Show class summary</button>`;
+  else primary = `<button class="btn primary" data-act="reset">Start a new round</button>`;
+
+  const bar = `<div class="bar">
+    <span class="brand">Pick the Method</span>
+    ${phase === "voting" ? `<span class="chip live"><span class="dot"></span>Voting open · ${n} response${n === 1 ? "" : "s"}</span>` : ""}
+    ${phase === "voting" || phase === "results" ? `<span class="chip">Question ${qi + 1} of ${QUESTIONS.length}</span>` : ""}
+    ${S.stale ? `<span class="chip" style="color:var(--bad)">Can't reach the class data yet</span>` : ""}
+    <button class="btn" data-act="prev" ${(phase === "voting" || phase === "results") && qi > 0 ? "" : "disabled"}>← Back</button>
+    ${primary}
+    ${phase !== "lobby" ? `<button class="btn ${S.confirmReset ? "danger-confirm" : ""}" data-act="${S.confirmReset ? "reset" : "askreset"}">${S.confirmReset ? "Click again to clear all votes" : "Reset"}</button>` : ""}
+    <button class="btn" data-act="preview">Student view</button>
+    <button class="btn" data-act="full">Full screen</button>
+  </div>`;
+
+  let body;
+  if (phase === "lobby") {
+    body = `<div class="center">
+      <span class="eyebrow">Solving quadratics · ${QUESTIONS.length} questions</span>
+      <h1>Factoring, square roots, or the quadratic formula?</h1>
+      <p>Students: open this same link on your computer. For each equation, pick the method that solves it most efficiently. You can change your answer until voting closes.</p>
+      <div class="waiting">Press <b>Start</b> (or the → key) when everyone is in.</div>
+    </div>`;
+  } else if (phase === "voting") {
+    body = `<div class="qhead"><span class="eyebrow">Question ${qi + 1} of ${QUESTIONS.length}</span><span class="eyebrow">Vote on your device</span></div>
+      ${eqBlock(q)}<div class="prompt">What is the best way to solve this equation?</div>
+      ${optionsBlock(qi, { pickable: false })}
+      <div class="waiting" style="text-align:center"><b>${n}</b> response${n === 1 ? "" : "s"} so far</div>`;
+  } else if (phase === "results") {
+    body = `<div class="qhead"><span class="eyebrow">Results · Question ${qi + 1} of ${QUESTIONS.length}</span></div>
+      <div class="equation" style="font-size:clamp(2rem,5vw,3.6rem)">${q.eq}</div>
+      ${resultsBlock(qi)}`;
+  } else {
+    body = summaryBlock();
+  }
+  return bar + `<div class="stage">${body}</div>`;
+}
+
+function studentView() {
+  const s = S.session; const phase = s?.phase || "lobby"; const qi = s?.q ?? 0; const q = QUESTIONS[qi];
+  const mine = (S.myVote && S.myVote.run === s?.run) ? S.myVote.answers?.["q" + qi] : null;
+  const top = S.isTeacher ? `<div class="bar"><span class="brand">Student view (preview)</span><span class="chip">Your votes here are not counted</span><button class="btn primary" data-act="preview">Back to teacher view</button></div>` : "";
+  let body;
+  if (S.noDb) {
+    body = `<div class="center"><h1>Can't join the vote</h1><p>Sign in to Claude with your school account, then reload this page. If you are signed in and still see this, ask your teacher to check that the link is shared with you.</p></div>`;
+  } else if (!S.sessionLoaded) {
+    body = `<div class="center"><h1>Joining…</h1><p>${S.stale ? "Still trying to reach the class session. Check your connection." : "Connecting to the class session."}</p></div>`;
+  } else if (phase === "lobby") {
+    body = `<div class="center"><span class="eyebrow">You're in</span><h1>Waiting for your teacher to start</h1><p>For each equation, choose the method that solves it most efficiently: factoring, square roots, or the quadratic formula.</p></div>`;
+  } else if (phase === "voting") {
+    body = `<div class="qhead"><span class="eyebrow">Question ${qi + 1} of ${QUESTIONS.length}</span></div>
+      ${eqBlock(q)}<div class="prompt">What is the best way to solve this equation?</div>
+      ${optionsBlock(qi, { pickable: !S.writeBlocked && !!S.uid, picked: mine })}
+      ${S.writeBlocked ? `<div class="note">Your vote couldn't be saved. Ask your teacher to give you Contributor access to this page.</div>`
+        : mine ? `<div class="note" style="text-align:center">Answer saved: <b>${METHODS[mine].name}</b>. You can change it until your teacher closes voting.</div>`
+        : `<div class="note" style="text-align:center">Tap an answer to vote.</div>`}`;
+  } else if (phase === "results") {
+    const right = mine === q.best;
+    body = `<div class="qhead"><span class="eyebrow">Results · Question ${qi + 1} of ${QUESTIONS.length}</span></div>
+      <div class="equation" style="font-size:clamp(2rem,5vw,3.4rem)">${q.eq}</div>
+      <div class="feedback ${mine ? (right ? "ok" : "no") : ""}">${mine ? (right ? "You got it!" : `You picked ${METHODS[mine].name}.`) : "You didn't vote on this one."}</div>
+      ${s.tallies?.["q" + qi] ? resultsBlock(qi) : `<div class="why"><b>Best method: ${METHODS[q.best].name}.</b> ${q.why}</div>`}`;
+  } else {
+    body = `<div class="center"><h1>That's all ${QUESTIONS.length}!</h1><p>Look up at the board for the class summary.</p></div>`;
+  }
+  return top + `<div class="stage">${body}</div>`;
+}
+
+function render() {
+  const teacher = S.isTeacher && !S.studentPreview;
+  app.innerHTML = teacher ? teacherView() : studentView();
+}
+
+// ---------- actions ----------
+function act(a) {
+  const s = S.session || {}; const qi = s.q ?? 0;
+  if (a !== "askreset") S.confirmReset = false;
+  if (a === "start") setSession({ phase: "voting", q: 0 });
+  else if (a === "reveal") setSession({ phase: "results", tallies: Object.assign({}, s.tallies, { ["q" + qi]: liveTally(qi) }) });
+  else if (a === "next") setSession({ phase: "voting", q: Math.min(qi + 1, QUESTIONS.length - 1) });
+  else if (a === "prev") setSession({ phase: "results", q: Math.max(qi - 1, 0) });
+  else if (a === "summary") setSession({ phase: "summary" });
+  else if (a === "askreset") { S.confirmReset = true; render(); }
+  else if (a === "reset") { S.session = null; setSession({ run: newRun(), q: 0, phase: "lobby", tallies: {} }); }
+  else if (a === "preview") { S.studentPreview = !S.studentPreview; render(); }
+  else if (a === "full") { const el = document.documentElement; (el.requestFullscreen ? el.requestFullscreen() : Promise.reject()).catch(() => {}); }
+}
+app.addEventListener("click", e => {
+  const v = e.target.closest("[data-vote]");
+  if (v && S.session?.phase === "voting") { castVote(v.dataset.vote); return; }
+  const b = e.target.closest("[data-act]");
+  if (b && !b.disabled) act(b.dataset.act);
+});
+document.addEventListener("keydown", e => {
+  if (!S.isTeacher || S.studentPreview || !S.db) return;
+  if (e.target.closest("input,textarea")) return;
+  const ph = S.session?.phase || "lobby";
+  if (e.key === "ArrowRight" || e.key === " ") {
+    e.preventDefault();
+    if (ph === "lobby") act("start"); else if (ph === "voting") act("reveal");
+    else if (ph === "results") act(S.session.q < QUESTIONS.length - 1 ? "next" : "summary");
+  } else if (e.key === "ArrowLeft" && (ph === "voting" || ph === "results")) act("prev");
+});
+
+// ---------- boot ----------
+render();
+(async () => {
+  const [db, user] = await Promise.all([window.claude?.use?.("db") ?? null, window.claude?.use?.("user") ?? null]);
+  if (!db) { S.noDb = true; render(); return; }
+  S.db = db;
+  if (user) {
+    S.uid = await user.id();
+    S.isTeacher = await user.canEdit();
+  }
+  render();
+
+  const timer = setTimeout(() => { S.stale = true; render(); }, 10000);
+  db.doc("session/current").onSnapshot(snap => {
+    if (!snap.metadata.fromCache) { clearTimeout(timer); S.stale = false; }
+    S.session = snap.exists ? snap.data() : null;
+    S.sessionLoaded = true;
+    render();
+  }, err => { clearTimeout(timer); S.sessionLoaded = true; console.error(err); render(); });
+
+  if (S.uid) {
+    db.doc("votes/" + S.uid).onSnapshot(snap => {
+      if (snap.metadata.hasPendingWrites) return;
+      S.myVote = snap.exists ? snap.data() : null; render();
+    }, err => console.error(err));
+  }
+  if (S.isTeacher) {
+    db.collection("votes").onSnapshot(snap => {
+      S.votes = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+      render();
+    }, err => console.error(err));
+  }
+})();
+</script>
